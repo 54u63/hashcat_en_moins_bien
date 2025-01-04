@@ -1,0 +1,7 @@
+allouer un buffer de plusieurs char* (char**)
+tester l'écriture dans ce buffer
+passer ce buffer par référence
+ouvrir un fichier
+lire le fichier
+stocker chaque mot dans un buffer
+copier chaque mot dans le buffer de mots

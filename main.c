@@ -4,16 +4,41 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #define MAX_PAGE 5
 #define MAX_LEN 15
 
-// Fonction pour remplir le tableau de chaînes de caractères
+
+int load_next(int fd, int* bookmark){
+  int mark=*bookmark;
+  char* words=(char*)mmap(NULL,MAX_LEN,PROT_READ,MAP_PRIVATE,fd,mark);
+  if(words == MAP_FAILED){
+    printf("[x] failed to map on the expected words\n");
+    return -1;
+  }
+  printf("[*] map successful\n");
+  int max_read=mark+MAX_LEN;
+  while (words[mark]!='\n' && mark<max_read){
+    printf("%c",words[mark]);
+    mark+=1;
+  }
+  if(munmap(words,MAX_LEN)==-1){
+    printf("[x] failed to unmap memory\n");
+    return -1;
+  }
+  printf("[*]unmap successful\n");
+  *bookmark=mark;
+  return 0;
+
+}
+
+
 int fill_array(char*** arr, int fd, int* bookmark) {
     // Allocation de mémoire pour la première case
-    (*arr)[0] = (char*)malloc(MAX_LEN * sizeof(char));  // Allocation correcte pour un char
+    (*arr)[0] = (char*)malloc(MAX_LEN * sizeof(char));
     if ((*arr)[0] != NULL) {
         printf("[+] Successfully allocated first cell of array\n");
         strcpy((*arr)[0], "test");  // Copie de la chaîne dans la première case
@@ -60,7 +85,13 @@ int main() {
 
     // Affichage après modification (la première case contient "test\n")
     printf("[*] First element of buffer: %s\n", kool_buffer[0]);
-
+    
+    printf("/!\\ trying load next  with bm %d/!\\ \n\n",bookmark);
+    for(int i=0;i<3;i++){
+      load_next(fd,&bookmark);
+      printf("/!\\ trying load next  with bm %d/!\\ \n\n",bookmark);
+    }
+    
     printf("[*] Freeing each element\n");
     // Libération de la mémoire pour chaque élément du tableau
     for (int i = 0; i < MAX_PAGE; i++) {
