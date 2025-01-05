@@ -13,35 +13,29 @@
 #define PAGE_SIZE sysconf(_SC_PAGE_SIZE)
 
 typedef struct FileHandler{
-  int fd;
-  int mark;
-  int word;
-  char* page;
+  int fd; //file descriptor du fichier à ouvrir
+  int mark; //repère de caractère dans le fichier (à quel caractère on en est)
+  int word; //repère de mot dans le fichier (a quel mot on en est dans le fichier)
+  char* page; //page mappée par mmap
 } FileHandler;
 
 
 int load_array(FileHandler* words,char*** out){
   /*
-   * in:  int fd file descriptor de la wordlist
-   *      int * bookmark entier permettant de retrouver à quel mot on en était.
-   *      char * word mot renvoyé 
-   * return: int 
-   *    0 si succès
-   *    -1 si échec d'allocation
-   *    1  si échec de mappage dans le buffer
-   *
-   *
-   *  description: map un fichier directement dans la mémoire du process
-   *               si le mappage réussi, itère au travers des caractères jusqu'à rencontrer un crlf
-   *               les caractères lu sont alors retournés dans la variable "word"
-   *               le fichier est ensuite démappé.
-   *               La variable bookmark permet de reprendre directement au dernier mot lu.
-   *
+   * input: FileHandler* words : structure représentant le fichier traité
+   *        char***      out   : tableau à deux dimension passé par référence qui permettra de stocker les mots
+   * output: int:
+   *        0 si succès
+   *        1 si échec
    * 
-*/
-  // première itération, on charge donc la page en mémoire
+   * description: lis les éléments contenus dans la page chargée puis divise les mots un a un. Un mot est considéré
+   *              comme une suite de caractère terminé par un '\n'. l'intéret est de réaliser un équivalent à la
+   *              fonction strtok() sans avoir besoin des permissions en écriture sur le fichier
+   *
+   *
+   * */
   
-  if (words->mark==0 && words->page == NULL){
+  if (words->mark==0 && words->page == NULL){ //ouverture du fichier et chargement #TODO modifier pour charger plusieurs page
     words->page=(char*)mmap(NULL,MAX_PAGE,PROT_READ,MAP_PRIVATE,words->fd,0);
     if (words->page == MAP_FAILED){
       perror("[x] failed to map page");
@@ -49,23 +43,34 @@ int load_array(FileHandler* words,char*** out){
     }
   }
   printf("[*] page sucessfully mapped in memory\n");
-  int diff = 0;
-  char* temp_buffer = (char*)malloc(MAX_LEN*sizeof(char));
-  if(temp_buffer == NULL){
+  int diff = 0; //compteur de caractères lus par le programme (sert pour strncpy)
+  char* temp_buffer = (char*)malloc(MAX_LEN*sizeof(char)); //buffer temporaire 
+  if(temp_buffer == NULL){ //vérification malloc
     perror("[x] failed to allocate temporary bufffer\n");
     return 1;
   }
   printf("[*] starting at %d index in page\n", words->mark);
   printf("[*] starting at %d word in buffer\n", words->word);
-  for(;words->mark<MAX_PAGE;words->mark++){
-    if (words->page[words->mark]=='\n'){
-      printf("%s : word[%d]\n",temp_buffer,words->word);
-      diff=0;
-      words->word++;
+  for(;words->mark<MAX_PAGE;words->mark++){//itération dans les charactères du fichier
+    if (diff >= MAX_LEN) {//si le mot qu'on est entrain de charger est plus grand que la taille de notre buffer
+      perror("[x] temp_buffer overflow");//on saute
+      return 1;
     }
-    else{
-      temp_buffer[diff]=words->page[words->mark];
-      diff++;
+    if (words->page[words->mark]=='\n'){//si la lettre est \n -> fin du mot
+      printf("%s : word[%d] of len %d\n",temp_buffer,words->word,diff); //on affiche un message pour valider que le mot à bien été lu
+      *out[words->word]=(char*)malloc((diff+1)*sizeof(char)); //on alloue la mémoire dans notre tableau final pour stocker notre mot
+      if (*out[words->word]==NULL){//vérification de l'allocation la mémoire est free par la suite
+        perror("[x]failed to allocate wordlist buffer\n");
+        return 1;
+      }
+      strncpy(*out[words->word],temp_buffer,diff);
+      printf("[*] word loaded in the array -> %s\n",*out[words->word]);
+      diff=0; //réinitalisation de la taille du mot
+      words->word++;// on chargera le mot qui va être lu dans la case suivante
+    }
+    else{//sinon pas de fin du mot donc continuation
+      temp_buffer[diff]=words->page[words->mark];//stockage du caractère dans le buffer temporaire
+      diff++; //incrémentation de la taille du mot lue
     }
 
   }
@@ -109,6 +114,7 @@ int main() {
   char** words_buffer = (char**)malloc(MAX_PAGE * sizeof(char*));
   if (words_buffer == NULL){
     perror("[!] failed to allocate buffer of string");
+    return 1;
   }
 
   printf("[*] Done loading buffer, now gonna store the word in the allocated buffers\n");
