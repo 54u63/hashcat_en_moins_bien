@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 #define MAX_PAGE 4096
-#define MAX_LEN 15
+#define MAX_LEN 55
 #define PAGE_SIZE sysconf(_SC_PAGE_SIZE)
 
 typedef struct FileHandler{
@@ -33,7 +33,8 @@ int load_array(FileHandler* words,char*** out){
    *              fonction strtok() sans avoir besoin des permissions en écriture sur le fichier
    *
    *
-   * */
+   *
+*/
   
   if (words->mark==0 && words->page == NULL){ //ouverture du fichier et chargement #TODO modifier pour charger plusieurs page
     words->page=(char*)mmap(NULL,MAX_PAGE,PROT_READ,MAP_PRIVATE,words->fd,0);
@@ -57,14 +58,16 @@ int load_array(FileHandler* words,char*** out){
       return 1;
     }
     if (words->page[words->mark]=='\n'){//si la lettre est \n -> fin du mot
-      printf("%s : word[%d] of len %d\n",temp_buffer,words->word,diff); //on affiche un message pour valider que le mot à bien été lu
-      *out[words->word]=(char*)malloc((diff+1)*sizeof(char)); //on alloue la mémoire dans notre tableau final pour stocker notre mot
-      if (*out[words->word]==NULL){//vérification de l'allocation la mémoire est free par la suite
+      //printf("%s : word[%d] of len %d\n",temp_buffer,words->word,diff); //on affiche un message pour valider que le mot à bien été lu
+      (*out)[words->word]=(char*)malloc((diff+1)*sizeof(char)); //on alloue la mémoire dans notre tableau final pour stocker notre mot
+      if ((*out)[words->word]==NULL){//vérification de l'allocation la mémoire est free par la suite
         perror("[x]failed to allocate wordlist buffer\n");
         return 1;
       }
-      strncpy(*out[words->word],temp_buffer,diff);
-      printf("[*] word loaded in the array -> %s\n",*out[words->word]);
+      //printf("[*] sucessfully allocated memory into the words buffer\n");
+      strncpy((*out)[words->word],temp_buffer,diff);
+      //(*out)[words->word]='\0';
+      printf("[*] word loaded in the array -> %s\n",(*out)[words->word]);
       diff=0; //réinitalisation de la taille du mot
       words->word++;// on chargera le mot qui va être lu dans la case suivante
     }
@@ -81,6 +84,30 @@ int load_array(FileHandler* words,char*** out){
     return 1;
   }
 }
+/*
+  for(int i=0;i<3;i++){
+    (*out)[i]=(char*)malloc(6*sizeof(char));
+    if ((*out)[i]==NULL){
+      perror("[x] failed to allocate the memory to buffer");
+      return 1;
+    }
+    strncpy((*out)[i],"pouet",5);
+    (*out)[i][5]='\0';
+    printf("[%d] %s\n",i,(*out)[i]);
+  }
+    for (int i = 0; i < 3; i++) {
+    // Allouer de la mémoire pour chaque chaîne dans *out
+    (*out)[i] = (char*)malloc(5 * sizeof(char)); // Notez la correction ici : (*out)[i] au lieu de *out[i]
+    if ((*out)[i] == NULL) {
+      printf("Erreur d'allocation mémoire pour *out[%d]\n", i);
+      return -1; // Retourner une valeur d'erreur
+    }
+    strncpy((*out)[i], "pouet", 5);  // Copier "pouet" dans la chaîne
+    (*out)[i][4] = '\0'; // Ajouter un terminant NULL explicite à la fin de la chaîne
+    printf("[%d] %s\n", i, (*out)[i]);
+  }
+  return 0; // Retourne 0 si tout s'est bien passé
+*/
 
 
 int main() {
@@ -123,6 +150,9 @@ int main() {
 
   load_array(&wordlist,&words_buffer);
   printf("[*]word mark : %d\n",wordlist.mark);
+  for(int i=0;i<9;i++){
+    printf("[%d] -> %s\n",i,words_buffer[i]);
+  }
 /*
     // Appel de la fonction pour remplir le tableau
     if (fill_array(&kool_buffer, fd, &bookmark) != 0) {
