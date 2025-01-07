@@ -77,101 +77,79 @@ int load_array(FileHandler *words, char ***out)
 	    return 1;
 	}
 	if (words->page[words->mark] == '\n') {	//si la lettre est \n -> fin du mot
-	    (*out)[words->word] = (char *) malloc((diff + 1);	//on alloue la mémoire dans notre tableau final pour stocker notre mot
-						  if ((*out)[words->word] == NULL) {	//vérification de l'allocation la mémoire est free par la suite
-						  perror
-						  ("[x]failed to allocate wordlist buffer\n");
-						  return 1;}
-						  strncpy((*out)[words->word], temp_buffer, diff); diff = 0;	//réinitalisation de la taille du mot
-						  words->word++;	// on chargera le mot qui va être lu dans la case suivante
-						  } else {	//sinon pas de fin du mot donc continuation
-						  temp_buffer[diff] = words->page[words->mark];	//stockage du caractère dans le buffer temporaire
-						  diff++;	//incrémentation de la taille du mot lue
-						  }
+	    (*out)[words->word] = (char *) malloc(diff + 1);	//on alloue la mémoire dans notre tableau final pour stocker notre mot
+	    if ((*out)[words->word] == NULL) {	//vérification de l'allocation la mémoire est free par la suite
+		perror("[x]failed to allocate wordlist buffer\n");
+		return 1;
+	    }
+	    strncpy((*out)[words->word], temp_buffer, diff);
+	    diff = 0;		//réinitalisation de la taille du mot
+	    words->word++;	// on chargera le mot qui va être lu dans la case suivante
+	} else {		//sinon pas de fin du mot donc continuation
+	    temp_buffer[diff] = words->page[words->mark];	//stockage du caractère dans le buffer temporaire
+	    diff++;		//incrémentation de la taille du mot lue
+	}
 
-						  }
+    }
 
 
-						  if (munmap
-						      (words->page,
-						       MAX_PAGE) == -1) {
-						  perror
-						  ("[x] failed to unmap the page");
-						  return 1;}
-						  printf
-						  ("[*]temp buffer ended with %s\n",
-						   temp_buffer);}
+    if (munmap(words->page, MAX_PAGE) == -1) {
+	perror("[x] failed to unmap the page");
+	return 1;
+    }
+    printf("[*]temp buffer ended with %s\n", temp_buffer);
+}
 
-						  int main(int argc,
-							   char **argv) {
+int main(int argc, char **argv)
+{
 
-						  // initialisation de la structure pour mappage du fichier
-						  FileHandler wordlist;
-						  wordlist.fd =
-						  open(argv[1], O_RDONLY);
-						  if (wordlist.fd == -1) {
-						  perror
-						  ("Error opening file");
-						  return 1;}
+    // initialisation de la structure pour mappage du fichier
+    FileHandler wordlist;
+    wordlist.fd = open(argv[1], O_RDONLY);
+    if (wordlist.fd == -1) {
+	perror("Error opening file");
+	return 1;
+    }
 
-						  wordlist.mark = 0;
-						  wordlist.word = 0;
-						  wordlist.page = NULL;
-						  //vérification de la taille de la page
-						  int pagesize = PAGE_SIZE;
-						  if (pagesize == -1) {
-						  printf
-						  ("[x] failed to get size of a page\n");}
-						  printf
-						  ("[*] page size is %d\n",
-						   pagesize);
-						  // Allocation de la mémoire pour un tableau de pointeurs de char (tableau de la wordlist)
-						  printf
-						  ("[*] Allocating buffer for all words: %d\n",
-						   MAX_PAGE);
-						  char **words_buffer =
-						  (char **) malloc(MAX_PAGE
-								   *
-								   sizeof
-								   (char
-								    *));
-						  if (words_buffer ==
-						      NULL) {
-						  perror
-						  ("[!] failed to allocate buffer of string");
-						  return 1;}
+    wordlist.mark = 0;
+    wordlist.word = 0;
+    wordlist.page = NULL;
+    //vérification de la taille de la page
+    int pagesize = PAGE_SIZE;
+    if (pagesize == -1) {
+	printf("[x] failed to get size of a page\n");
+    }
+    printf("[*] page size is %d\n", pagesize);
+    // Allocation de la mémoire pour un tableau de pointeurs de char (tableau de la wordlist)
+    printf("[*] Allocating buffer for all words: %d\n", MAX_PAGE);
+    char **words_buffer = (char **) malloc(MAX_PAGE * sizeof(char *));
+    if (words_buffer == NULL) {
+	perror("[!] failed to allocate buffer of string");
+	return 1;
+    }
 
-						  printf
-						  ("[*] Done loading buffer, now gonna store the word in the allocated buffers\n");
-						  printf
-						  ("[+] DONE DOING PREROUTINE FILGHT CHECK [+]\n");
-						  printf
-						  ("[*] now going to load pages and each words in the allocated buffer\n");
-						  load_array(&wordlist,
-							     &words_buffer);
-						  for (int i = 0;
-						       i < wordlist.word;
-						       i++) {
-						  printf("[%d] -> %s\n", i,
-							 words_buffer[i]);}
-						  printf
-						  ("[*]word mark : %d\n",
-						   wordlist.mark);
-						  load_array(&wordlist,
-							     &words_buffer);
-						  printf
-						  ("[*] Freeing each element\n");
-						  // Libération de la mémoire pour chaque élément du tableau
-						  for (int i = 0;
-						       i < MAX_PAGE; i++) {
-						  free(words_buffer[i]);}
+    printf
+	("[*] Done loading buffer, now gonna store the word in the allocated buffers\n");
+    printf("[+] DONE DOING PREROUTINE FILGHT CHECK [+]\n");
+    printf
+	("[*] now going to load pages and each words in the allocated buffer\n");
+    load_array(&wordlist, &words_buffer);
+    for (int i = 0; i < wordlist.word; i++) {
+	printf("[%d] -> %s\n", i, words_buffer[i]);
+    }
+    printf("[*]word mark : %d\n", wordlist.mark);
+    load_array(&wordlist, &words_buffer);
+    printf("[*] Freeing each element\n");
+    // Libération de la mémoire pour chaque élément du tableau
+    for (int i = 0; i < MAX_PAGE; i++) {
+	free(words_buffer[i]);
+    }
 
-						  printf
-						  ("[*] Freeing the global table\n");
-						  // Libération du tableau principal
-						  free(words_buffer);
-						  printf
-						  ("[+] All free successful\n");
-						  // Fermeture du fichier
-						  close(wordlist.fd);
-						  return 0;}
+    printf("[*] Freeing the global table\n");
+    // Libération du tableau principal
+    free(words_buffer);
+    printf("[+] All free successful\n");
+    // Fermeture du fichier
+    close(wordlist.fd);
+    return 0;
+}
