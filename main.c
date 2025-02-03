@@ -20,7 +20,8 @@ typedef struct FileHandler {
 } FileHandler;
 
 int load_page(FileHandler *words)
-{ printf("### LOAD PAGE CALLED [°°]\n");
+{ /**/
+  printf("[+]CALL TO load_page[+]\n");
   if (words->page != NULL){
     if (munmap(words->page, PAGE_SIZE) == -1) {
           perror("[x] failed to unmap the page");
@@ -106,6 +107,10 @@ _EndPage:
   }
 
   (*out)[words->word]=(char *) malloc(diff+1);
+  if((*out)[words->word]==NULL){
+    perror("[x] failed to allocate last cell of array");
+    return 1;
+  }
   strncpy((*out)[words->word],temp_buffer,diff);
   diff=0;
   return 0;
@@ -121,6 +126,16 @@ int main(int argc, char **argv)
       perror("Error opening file");
       return 1;
     }
+    /*
+    printf("[preparing fstat]\n");
+    struct stat file_info;
+    if(fstat(wordlist.fd,&file_info)==-1){
+      perror("[x] failed to get wordlist size");
+      return 0;
+    }
+    off_t size = file_info.st_size;
+    printf("[*] file %d of size : %d\n",size,wordlist.fd);
+    */
     wordlist.mark = 0;
     wordlist.page = NULL;
     //vérification de la taille de la page
@@ -133,19 +148,18 @@ int main(int argc, char **argv)
     printf("[*] Allocating buffer for all words: %d\n", PAGE_SIZE);
     char **words_buffer = (char **) malloc(PAGE_SIZE * sizeof(char *));
     if (words_buffer == NULL) {
-    perror("[!] failed to allocate buffer of string");
-    return 1;
+      perror("[!] failed to allocate buffer of string");
+      return 1;
     }
     load_page(&wordlist);
-    printf("[+] DONE DOING PREROUTINE FILGHT CHECK [+]\n");
 
-    load_array(&wordlist, &words_buffer);
-    printf("[0]->%s\n...\n[%d]->%s\n",words_buffer[0],wordlist.word,words_buffer[wordlist.word]);
-    wordlist.word = 0;
-    printf("loading next page\n");
-    load_array(&wordlist, &words_buffer);
-    printf("[0]->%s\n...\n[%d]->%s\n",words_buffer[0],wordlist.word,words_buffer[wordlist.word]);
-    wordlist.word = 0;
+    printf("[+] DONE DOING PREROUTINE FILGHT CHECK [+]\n");
+    for(int i=0;i<10;i++){
+      load_array(&wordlist, &words_buffer);
+      printf("[0]->%s\n...\n[%d]->%s\n",words_buffer[0],wordlist.word,words_buffer[wordlist.word]);
+      wordlist.word = 0;
+      printf("loading next page\n");
+    }
    
 
   printf("[*] Freeing each element\n");
